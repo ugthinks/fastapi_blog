@@ -29,7 +29,7 @@ posts: list[dict] = [
     },
     {
         "id": 2,
-        "author": "Jane Doe",
+        "author": "Jane Doen",
         "title": "Python is Great for Web Development",
         "content": "Python is a great language for web development, and FastAPI makes it even better.",
         "date_posted": "April 21, 2025",
