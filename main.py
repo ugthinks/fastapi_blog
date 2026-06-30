@@ -5,7 +5,8 @@ from fastapi.responses import JSONResponse  #this one too
 from starlette.exceptions import HTTPException as StarletteHTTPException #fastapi exceptions are based on this only and this allow to handel many exceptions even if it is not handeled manually
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
- 
+from schemas import PostCreate, PostResponse 
+
 # from fastapi.responses import HTMLResponse (not used when template)
 #jinja tool is a templating engine used by fastapi.
 #templating engine allows us to write full html in and let json api endpoint saperate for developers
@@ -78,9 +79,28 @@ def post_page(request: Request, post_id : int):
 # HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="POST was not found")
 
 
-@app.get("/api/posts")                                          #we changed the route,     response_class=HTMLResponse
+@app.get("/api/posts", response_model=list[PostResponse])                                          #we changed the route,     response_class=HTMLResponse
 def get_posts():
     return posts
+
+
+## Create Post
+@app.post(
+    "/api/posts",
+    response_model=PostResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_post(post: PostCreate):
+    new_id = max(p["id"] for p in posts) + 1 if posts else 1
+    new_post = {
+    "id": new_id,
+    "author": post.author,
+    "title": post.title,
+    "content": post.content,
+    "date_posted": "April 23, 2025",
+    }
+    posts.append(new_post)
+    return new_post
 
 
 # printing individual post through id
@@ -89,7 +109,7 @@ def get_posts():
 # otherwise raise an error
 
 
-@app.get("/api/posts/{post_id}")
+@app.get("/api/posts/{post_id}", response_model=PostResponse)      #Think of response_model as a filter, "I'll only keep these fields."
 def get_post(post_id : int):
     for post in posts:
         if(post.get("id") == post_id):
