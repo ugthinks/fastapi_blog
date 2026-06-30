@@ -1,4 +1,8 @@
 from fastapi import FastAPI, Request
+from fastapi import HTTPException, status #for raising errors
+from fastapi.exceptions import RequestValidationError   #these are for printing exception in proper webpage
+from fastapi.responses import JSONResponse  #this one too
+from starlette.exceptions import HTTPException as StarletteHTTPException #fastapi exceptions are based on this only and this allow to handel many exceptions even if it is not handeled manually
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
  
@@ -39,9 +43,9 @@ posts: list[dict] = [
 
 # post -> is the variable name
 # : -> type hint it tells what type of values you will get
-#list[dict] -> list of dictionaries can be expected
-#fastapi uses decoraters for routes
-#Home route that responds to get requests to the root URL
+# list[dict] -> list of dictionaries can be expected
+# fastapi uses decoraters for routes
+# Home route that responds to get requests to the root URL
 
 
 @app.get("/posts", include_in_schema=False, name = "posts")                                         # / -> path: root/posts, response_class=HTMLResponse (used if template wasn't used)
@@ -65,6 +69,77 @@ def home(request: Request):                                                     
 #include in schema = False if any api is not nessesary in JSON APIs
 
 
+@app.get("/posts/{post_id}", include_in_schema= False)
+def post_page(request: Request, post_id : int):
+    for post in posts:
+        if(post.get("id") == post_id):
+            return templates.TemplateResponse(request, "post.html", {"post": post, "title": post["title"]})
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="POST was not found")
+# HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="POST was not found")
+
+
 @app.get("/api/posts")                                          #we changed the route,     response_class=HTMLResponse
 def get_posts():
-    return f"<h2>{posts[1]}</h2>"
+    return posts
+
+
+# printing individual post through id
+# so we set the path keeping post id for each unque posts
+# we ran a loop to get the actual post matching the id given and ids of posts we have
+# otherwise raise an error
+
+
+@app.get("/api/posts/{post_id}")
+def get_post(post_id : int):
+    for post in posts:
+        if(post.get("id") == post_id):
+            return post
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="POST was not found")
+#it let's find terminal readers that it's is an error not just another string to ptint
+# 422: forbidden -> it happens if any input is not allowed as you type string in post id (type hint -> int)
+
+
+## StarletteHTTPException Handler
+@app.exception_handler(StarletteHTTPException)
+def general_http_exception_handler(request: Request, exception: StarletteHTTPException):
+    message = (
+        exception.detail
+        if exception.detail
+        else "An error occurred. Please check your request and try again."
+    )  
+
+    if request.url.path.startswith("/api"):
+        return JSONResponse(
+            status_code=exception.status_code,
+            content={"detail": message},
+        )
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "status_code": exception.status_code,
+            "title": exception.status_code,
+            "message": message,
+        },
+        status_code=exception.status_code,
+    )
+
+
+### RequestValidationError Handler
+@app.exception_handler(RequestValidationError)
+def validation_exception_handler(request: Request, exception: RequestValidationError):
+    if request.url.path.startswith("/api"):
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"detail": exception.errors()},
+        )
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "status_code": status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "title": status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "message": "Invalid request. Please check your input and try again.",
+        },
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+    )
