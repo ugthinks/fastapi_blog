@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations      # need if some variable is used even before declaring it
 
 from datetime import UTC, datetime
 

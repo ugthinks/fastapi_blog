@@ -1,8 +1,19 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 # BaseModel -> BaseClass which all Pydantic model inherit from
 # Field allows you add constraint like Min and Max
 # Modern Pydantic model
 # improves validation of data, determines what data goes in what comes out
+from datetime import datetime
+
+class UserBase(BaseModel):
+    username: str = Field(min_length=1, max_length=50)
+    email: EmailStr = Field(max_length=120)
+    
+class UserCreate(UserBase):
+    pass
+
+class UserResponse(UserBase):
+    pass
 
 
 class PostBase(BaseModel):
